@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.business_name }} Chatbot</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden h-[550px]">
+        
+        <div class="p-4 text-white flex items-center justify-between bg-[{{ config.primary_color }}]">
+            <div>
+                <h2 class="font-bold text-lg">{{ config.business_name }}</h2>
+                <p class="text-xs opacity-90">Online Assistant</p>
+            </div>
+        </div>
+
+        <div id="chat-feed" class="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50 text-sm">
+            <div class="flex justify-start">
+                <div class="max-w-[80%] bg-white border border-slate-200 text-slate-800 rounded-2xl px-4 py-2 shadow-sm">
+                    {{ config.welcome_message }}
+                </div>
+            </div>
+        </div>
+
+        <div class="p-3 bg-white border-t border-slate-200 flex gap-2">
+            <input type="text" id="user-input" placeholder="Type your message..." 
+                   class="flex-1 border border-slate-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-slate-400 text-sm">
+            <button id="send-btn" class="text-white px-4 py-2 rounded-xl text-sm font-medium transition hover:opacity-90 bg-[{{ config.primary_color }}]">
+                Send
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatFeed = document.getElementById('chat-feed');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // 1. Instantly append the user bubble to the screen
+            appendMessage(text, 'user');
+            userInput.value = '';
+
+            // 2. Package and ship the payload to our Flask endpoint
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                
+                const data = await response.json();
+                
+                // 3. Append the AI's reply back onto the feed
+                if (data.status === 'SUCCESS') {
+                    appendMessage(data.reply, 'bot');
+                } else {
+                    appendMessage('System connection anomaly.', 'error');
+                }
+            } catch (err) {
+                appendMessage('Failed to connect to backend server.', 'error');
+            }
+        }
+
+        function appendMessage(text, sender) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            let bubbleStyles = "max-w-[80%] rounded-2xl px-4 py-2 shadow-sm ";
+            if (sender === 'user') {
+                // User chat bubble style
+                bubbleStyles += "bg-slate-800 text-white";
+            } else if (sender === 'error') {
+                bubbleStyles += "bg-red-100 text-red-700 border border-red-200";
+            } else {
+                // Bot chat bubble dynamic style matching config primary color
+                bubbleStyles += "bg-white border border-slate-200 text-slate-800";
+            }
+
+            wrapper.innerHTML = `<div class="${bubbleStyles}">${text}</div>`;
+            chatFeed.appendChild(wrapper);
+            chatFeed.scrollTop = chatFeed.scrollHeight; // Auto-scrolls window down
+        }
+
+        // Fire request on click or on pressing Enter
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+    </script>
+</body>
+</html>
