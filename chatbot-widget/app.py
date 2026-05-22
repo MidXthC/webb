@@ -1,3 +1,4 @@
+import os
 import json
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
@@ -8,8 +9,7 @@ app = Flask(__name__)
 CORS(app)
 
 # 🔑 SECURE CREDENTIAL CHECK: Paste your Google AI Studio key here
-GEMINI_API_KEY = "AIzaSyDftgGTgdjcVdoRrQ6rA0q800_YEjj7S-s"
-
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")  
 # Initialize the official Google GenAI client architecture
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
 
